@@ -1,27 +1,42 @@
 pipeline {
     agent any
 
+    environment {
+        // SONAR_TOKEN must match the ID of the Jenkins credential you created
+        SONAR_TOKEN = credentials('SONAR_TOKEN')
+    }
+
     stages {
+
+        stage('Checkout SCM') {
+            steps {
+                // Checkout the GitHub repository
+                checkout scm
+            }
+        }
 
         stage('Install Dependencies') {
             steps {
+                echo 'Installing Node.js dependencies...'
                 sh 'npm install'
             }
         }
 
         stage('SonarCloud Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                    curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-                    unzip -q sonar-scanner.zip
-                    mv sonar-scanner-* sonar-scanner
-                    export PATH=$PATH:$(pwd)/sonar-scanner/bin
-                    sonar-scanner
-                    '''
-                }
+                echo 'Running SonarCloud scan...'
+                sh 'sonar-scanner'
             }
         }
 
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
+        }
     }
 }
